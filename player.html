@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta name="tpl" content="v11.13">
+<meta name="tpl" content="v11.14">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>정봉채 편 녹취 (촬영본 5개)</title>
@@ -90,7 +90,7 @@ input[type=text],input[type=search]{font:inherit;padding:5px 8px;border:1px soli
 .bempty{padding:14px 12px;color:var(--sub);font-size:12px}
 .drop-line{height:0;border-top:3px solid var(--acc);margin:-1px 6px}
 .blist.over{background:#eef3ff}
-.bitem.card .bt{font-size:13px}
+.bitem.card .bt{font-size:13px}.bitem.card .ctx{white-space:pre-wrap}
 .ck{display:inline-block;font-size:11px;font-weight:700;padding:0 7px;border-radius:9px;line-height:18px;margin-right:6px;color:#fff}
 .bitem.card.k-sec{background:#f1efe9}.bitem.card.k-sec .bt{font-weight:700;font-size:15px}
 span.ordr{background:#dbeafe;border-bottom:2px solid #2563eb}b.ordn{display:inline-block;min-width:1.25em;padding:0 3px;margin:0 2px 0 1px;border-radius:9px;background:#2563eb;color:#fff;font-size:.78em;line-height:1.35;text-align:center;font-weight:700}
@@ -409,7 +409,7 @@ function cItem(id,list,i,sub){const c=S.cards[id];const [kn,kc]=KINDS[c.kind]||K
   <div class="bt" data-shsel="${id}">${x.img?`<img class="bthumb" src="${x.img}" alt="">`:''}<span class="ck" style="background:${kc}">샷 #${x.n||''}</span>${esc(c.text||'')}<div class="bm">${esc(TRK[x.tr]?TRK[x.tr].name:'')} · ${tc(c.t0)} · ${mmss(c.dur||0)} · ${esc(x.label||c.name||'')}</div></div>
   <div class="ba"><span class="mv" title="체크한 항목이 있으면 함께 이동"><button data-mv="top" title="맨 위로 (Alt+Shift+↑)">⤒</button><button data-mv="up" title="위로 (Alt+↑)">▲</button><button data-mv="dn" title="아래로 (Alt+↓)">▼</button><button data-mv="bot" title="맨 아래로 (Alt+Shift+↓)">⤓</button></span><button class="x" data-rm="${id}" data-list="${list}" title="빼기">×</button></div></div>`}
   return `<div class="bitem card k-${c.kind} ${sel&&sel.id===id?'sel':''} ${isChk(list,id)?'chk':''}" data-id="${id}" data-list="${list}"><div class="h2"><input type="checkbox" class="ck2" data-chk="${id}" data-list="${list}" ${isChk(list,id)?'checked':''}><div class="h" data-drag="${id}" data-from="${list}">⋮⋮<br><span class="bm">${i+1}</span></div></div>
-  <div class="bt" data-cedit="${id}"><span class="ck" style="background:${kc}">${kn}</span>${esc(c.text||'(내용 없음)')}<div class="bm">${c.kind==='sec'?(c.dur?'예상 '+mmss(c.dur)+' · ':'')+'이 단락 RT '+mmss(sub||0):'예상 길이 '+mmss(c.dur||0)} · 눌러서 수정</div></div>
+  <div class="bt" data-cedit="${id}"><span class="ck" style="background:${kc}">${kn}</span><span class="ctx">${esc(c.text||'(내용 없음)')}</span><div class="bm">${c.kind==='sec'?(c.dur?'예상 '+mmss(c.dur)+' · ':'')+'이 단락 RT '+mmss(sub||0):'예상 길이 '+mmss(c.dur||0)} · 눌러서 수정</div></div>
   <div class="ba"><span class="mv" title="체크한 항목이 있으면 함께 이동"><button data-mv="top" title="맨 위로 (Alt+Shift+↑)">⤒</button><button data-mv="up" title="위로 (Alt+↑)">▲</button><button data-mv="dn" title="아래로 (Alt+↓)">▼</button><button data-mv="bot" title="맨 아래로 (Alt+Shift+↓)">⤓</button></span><button class="x" data-rm="${id}" data-list="${list}" title="빼기">×</button></div></div>`}
 function bItem(s,list,i){const cut=s.st&&s.st.length;
   return `<div class="bitem ${sel&&sel.id===s.id&&sel.list===list?'sel':''} ${isChk(list,s.id)?'chk':''}" data-id="${s.id}" data-list="${list}"><div class="h2"><input type="checkbox" class="ck2" data-chk="${s.id}" data-list="${list}" ${isChk(list,s.id)?'checked':''}><div class="h" data-drag="${s.id}" data-from="${list}">⋮⋮<br><span class="bm">${i+1}</span></div></div>
@@ -782,10 +782,14 @@ $('#bExport').onclick=()=>{const lines=[`${DATA.title} — 사용 목록`,''];le
 const HWPX=/*<H*//*__HWPX__*/{}/*H>*/;
 function hx(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'')}
 let HPID=1000;
-function hlChar(){ // 형광펜 글자(본문 글자 0번 + 노랑 음영) — header에 한 번만 추가
-  const I=HWPX.ids;if(I.hl!=null)return I.hl;let h=HWPX.header;const m=/<hh:charProperties itemCnt="(\d+)">/.exec(h);const base=/<hh:charPr id="0"[\s\S]*?<\/hh:charPr>/.exec(h);
-  if(!m||!base)return 0;const id=parseInt(m[1],10);const np=base[0].replace('id="0"',`id="${id}"`).replace(/shadeColor="[^"]*"/,'shadeColor="#FFF176"');
-  h=h.replace(m[0],`<hh:charProperties itemCnt="${id+1}">`).replace('</hh:charProperties>',np+'</hh:charProperties>');HWPX.header=h;I.hl=String(id);return I.hl}
+// 본문 글자 0번을 복사해 음영·밑줄·글자색만 바꾼 글자 모양을 header에 한 번만 추가
+function mkChar(key,shade,ul,color){const I=HWPX.ids;if(I[key]!=null)return I[key];let h=HWPX.header;const m=/<hh:charProperties itemCnt="(\d+)">/.exec(h);const base=/<hh:charPr id="0"[\s\S]*?<\/hh:charPr>/.exec(h);
+  if(!m||!base)return 0;const id=parseInt(m[1],10);let np=base[0].replace('id="0"',`id="${id}"`).replace(/shadeColor="[^"]*"/,`shadeColor="${shade}"`);
+  if(ul)np=np.replace(/<hh:underline [^>]*\/>/,`<hh:underline type="BOTTOM" shape="SOLID" color="${ul}"/>`);if(color)np=np.replace(/textColor="[^"]*"/,`textColor="${color}"`);
+  h=h.replace(m[0],`<hh:charProperties itemCnt="${id+1}">`).replace('</hh:charProperties>',np+'</hh:charProperties>');HWPX.header=h;I[key]=String(id);return I[key]}
+function hlChar(){return mkChar('hl','#FFF176')}          // 형광펜: 노랑 배경
+function ordChar(){return mkChar('ordc','#DBEAFE','#2563EB')}   // 순서 번호 부분: 플레이어처럼 파란 배경 + 파란 밑줄
+function ordNoChar(){return mkChar('ordn','#DBEAFE','#2563EB','#2563EB')} // ①② 번호: 파란 글자
 function hRun(t,c){return `<hp:run charPrIDRef="${c}"><hp:t>${hx(t)}</hp:t></hp:run>`}
 function hP(runs,o={}){return `<hp:p id="${HPID++}" paraPrIDRef="0" styleIDRef="0" pageBreak="${o.br?1:0}" columnBreak="0" merged="0">${runs.length?runs.join(''):'<hp:run charPrIDRef="0"><hp:t/></hp:run>'}</hp:p>`}
 function hPic(bin,w,h){const id=HPID++;return `<hp:run charPrIDRef="0"><hp:pic textWrap="SQUARE" textFlow="BOTH_SIDES" reverse="0" id="${id}" zOrder="0" numberingType="PICTURE" lock="0" dropcapstyle="None" href="" groupLevel="0" instid="${id}"><hp:offset x="0" y="0"/><hp:orgSz width="${w}" height="${h}"/><hp:curSz width="${w}" height="${h}"/><hp:flip horizontal="0" vertical="0"/><hp:rotationInfo angle="0" centerX="${w>>1}" centerY="${h>>1}" rotateimage="1"/><hp:renderingInfo><hc:transMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/><hc:scaMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/><hc:rotMatrix e1="1" e2="0" e3="0" e4="0" e5="1" e6="0"/></hp:renderingInfo><hp:imgRect><hc:pt0 x="0" y="0"/><hc:pt1 x="${w}" y="0"/><hc:pt2 x="${w}" y="${h}"/><hc:pt3 x="0" y="${h}"/></hp:imgRect><hp:imgClip left="0" right="${w}" top="0" bottom="${h}"/><hp:inMargin left="0" right="0" top="0" bottom="0"/><hp:imgDim dimwidth="${w}" dimheight="${h}"/><hc:img binaryItemIDRef="${bin}" bright="0" contrast="0" effect="REAL_PIC" alpha="0"/><hp:effects/><hp:sz width="${w}" height="${h}" widthRelTo="ABSOLUTE" heightRelTo="ABSOLUTE" protect="0"/><hp:pos treatAsChar="1" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="COLUMN" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/><hp:outMargin left="0" right="0" top="0" bottom="0"/><hp:shapeComment/></hp:pic></hp:run>`}
@@ -843,9 +847,10 @@ function hwpxTrans(){const I=HWPX.ids;HPID=1000;let body='',prv='';
       prv+=`[${tc(s.t0)}] ${spkName(s.spk)}: ${s.text}\n`}}
   return hwpxBuild('녹취',body,[],prv)}
 // 한글 구성안용: 문단 전체(취소선만 빼고), 순서 번호 붙은 부분 앞에 ①②…
-function fullRuns(s){const OR=s.ord||[],hc=hlChar();const runs=[];let cur='',cf=null;
-  const push=()=>{if(cur)runs.push(hRun(cur,cf?hc:0));cur=''};
-  for(let i=0;i<s.text.length;i++){const r=OR.find(x=>x[0]===i);const f=inHl(s,i);if(f!==cf){push();cf=f}if(r)cur+=circ(r[2]);if(!inSt(s,i))cur+=s.text[i]}
+function fullRuns(s){const OR=s.ord||[],hc=hlChar(),oc=OR.length?ordChar():0,onc=OR.length?ordNoChar():0;const runs=[];let cur='',cf=null;
+  const CH={h:hc,o:oc};const push=()=>{if(cur)runs.push(hRun(cur,cf?CH[cf]:0));cur=''};
+  for(let i=0;i<s.text.length;i++){const r=OR.find(x=>x[0]===i);const f=OR.some(x=>i>=x[0]&&i<x[1])?'o':inHl(s,i)?'h':0;if(f!==cf){push();cf=f}
+    if(r){push();runs.push(hRun(circ(r[2]),onc))}if(!inSt(s,i))cur+=s.text[i]}
   push();return runs}
 function fullOrdText(s){const OR=s.ord||[];let o='';for(let i=0;i<s.text.length;i++){const r=OR.find(x=>x[0]===i);if(r)o+=circ(r[2]);if(!inSt(s,i))o+=s.text[i]}return o.replace(/\s+/g,' ').trim()}
 function hwpxComp(){const I=HWPX.ids;HPID=1000;let body='',prv='';
@@ -855,9 +860,9 @@ function hwpxComp(){const I=HWPX.ids;HPID=1000;let body='',prv='';
   body+=hP([hRun(`예상 RT ${mmss(tot)} · 사용 ${S.use.length}개 · TC는 각 싱크 XML 타임라인 기준 · 취소선 부분은 빠지고, 문단은 전체를 적되 형광펜 부분은 노란 배경, 순서 번호 부분 앞에는 ①②… (길이·누적 RT는 XML에 남는 부분만 계산) · ${new Date().toLocaleString('ko-KR')}`,I.sm)]);
   let NO=0;const item=(id,i0,cum,withCum)=>{const sec_=isCard(id)&&S.cards[id]&&S.cards[id].kind==='sec';const i=sec_?0:NO++;
     if(isCard(id)){const c=S.cards[id];if(!c)return;
-      if(c.kind==='sec'){body+=hP([]);body+=hP([hRun(`■ ${c.text||''}${c.dur?` (${mmss(c.dur)})`:''}`,I.h2)]);prv+=`■ ${c.text}\n`;return}
-      if(c.kind==='shot'){body+=hP([hRun(`${i+1}. `,I.b),hRun(`[샷 #${c.n||''}] `,I.spk),hRun(`${c.name||''} · ${tc(c.t0)} ~ ${tc(c.t1)} · ${mmss(c.dur||0)}${withCum?` · 누적 ${mmss(cum)}`:''}`,I.sm)]);body+=hP([hRun(c.text||'',0)]);prv+=`${i+1}. [샷] ${c.text||''}\n`;return}
-      body+=hP([hRun(`${i+1}. `,I.b),hRun(`[${KINDS[c.kind][0]}] `,I.spk),hRun(`${mmss(c.dur||0)}${withCum?` · 누적 ${mmss(cum)}`:''}`,I.sm)]);body+=hP([hRun(c.text||'',0)]);prv+=`${i+1}. [${KINDS[c.kind][0]}] ${c.text||''}\n`;return}
+      if(c.kind==='sec'){body+=hP([]);const L=String(c.text||'').split(/\r?\n/);L.forEach((ln,k)=>body+=hP([hRun(`${k?'':'■ '}${ln}${k===L.length-1&&c.dur?` (${mmss(c.dur)})`:''}`,I.h2)]));prv+=`■ ${c.text}\n`;return}
+      if(c.kind==='shot'){body+=hP([hRun(`${i+1}. `,I.b),hRun(`[샷 #${c.n||''}] `,I.spk),hRun(`${c.name||''} · ${tc(c.t0)} ~ ${tc(c.t1)} · ${mmss(c.dur||0)}${withCum?` · 누적 ${mmss(cum)}`:''}`,I.sm)]);String(c.text||'').split(/\r?\n/).forEach(ln=>body+=hP([hRun(ln,0)]));prv+=`${i+1}. [샷] ${c.text||''}\n`;return}
+      body+=hP([hRun(`${i+1}. `,I.b),hRun(`[${KINDS[c.kind][0]}] `,I.spk),hRun(`${mmss(c.dur||0)}${withCum?` · 누적 ${mmss(cum)}`:''}`,I.sm)]);String(c.text||'').split(/\r?\n/).forEach(ln=>body+=hP([hRun(ln,0)]));prv+=`${i+1}. [${KINDS[c.kind][0]}] ${c.text||''}\n`;return}
     const t=MAP.get(id);if(!t)return;const c=clipInfo((t.t0+t.t1)/2);
     body+=hP([hRun(`${i+1}. `,I.b),hRun(`[${c?c.name:'-'} | ${tc(t.t0)}] `,I.sm),hRun(`${mmss(effDur(t))}${withCum?` · 누적 ${mmss(cum)}`:''}${t.dup?' · 복제':''}`,I.sm)]);
     body+=hP([hRun(`${spkName(t.spk)}: `,I.spk),...fullRuns(t)]);prv+=`${i+1}. ${spkName(t.spk)}: ${fullOrdText(t)}\n`};
@@ -914,7 +919,7 @@ const NLEN={resolve:'다빈치',fcp:'파이널컷',premiere:'프리미어'};
 const RESL={'1920x1080':'1920×1080 (FHD)','3840x2160':'3840×2160 (UHD)'};
 let RES=(()=>{const d=DATA.res?`${DATA.res.w}x${DATA.res.h}`:'1920x1080';try{return localStorage.getItem('rec-player-res')||d}catch(e){return d}})();
 const RW=()=>RES.split('x')[0],RH=()=>RES.split('x')[1],FMTN=()=>`FFVideoFormat${RH()}p${FMTS}`;
-function buildXML(nle){nle=nle||NLE;const P_=planXML();if(!P_)return null;return nle==='premiere'?writeXMEML(P_):writeFCPXML(P_,nle)}
+function buildXML(nle){nle=nle||NLE;const P_=planXML();if(!P_)return null;return nle==='fcp'?writeFCPXML(P_,nle):writeXMEML(P_)}
 // 드롭프레임 프레임 수 ↔ 타임코드 숫자(h,m,s,f)
 function dfSplit(f){const N=NOMF,dp=N===30?2:4,f10=N*600-dp*9,f1=N*60-dp;const D=Math.floor(f/f10),M=f%f10;f=f+dp*9*D+dp*Math.max(0,Math.floor((M-dp)/f1));return [Math.floor(f/(N*3600)),Math.floor(f/(N*60))%60,Math.floor(f/N)%60,f%N]}
 function writeFCPXML(P_,nle){const {X,out,LANES,used,off,nS,src}=P_;const fcp=nle==='fcp';
@@ -949,27 +954,35 @@ function writeFCPXML(P_,nle){const {X,out,LANES,used,off,nS,src}=P_;const fcp=nl
     L.push(prim?'                        </asset-clip>':'                        </gap>')}
   L.push('                    </spine>','                </sequence>','            </project>','        </event>','    </library>','</fcpxml>');
   return {name,xml:L.join('\n'),n:nS,dur:off/FPS,ext:'fcpxml'}}
-// 프리미어: FCP7 XML(xmeml v5). 클립 in/out은 원본 시작에서의 프레임이라 TC 방식과 상관없어요
+// 프리미어·다빈치: FCP7 XML(xmeml v5). 클립 in/out은 '원본 파일 안의 초'를 원본 fps 프레임으로 → 원본 TC 방식(DF/NDF)·fps(23.976 캐논 등)가 타임라인과 달라도 안 밀려요.
+// 멀티 모노 원본(소니 FX6 MXF 등)은 채널마다 clipitem(sourcetrack k) → 다빈치에서 컴파운드 없이 모노 트랙 n개(채널 1..n, 2026-11-18 확인). 같은 클립의 영상·오디오는 link로 묶어요
 function writeXMEML({X,out,LANES,used,off,nS,src}){const AM={};X.assets.forEach(a=>AM[a.id]=a);
-  const name=`${DATA.xmlName}_사용_${stamp()}`;const NT=RT_.den===1001?'TRUE':'FALSE';
-  const rate=`<rate><timebase>${NOMF}</timebase><ntsc>${NT}</ntsc></rate>`;
-  const secOf=r=>Number(r[0])/Number(r[1]);const fOf=t=>Math.round(t*FPS);
+  const name=`${DATA.xmlName}_사용_${stamp()}`;
+  const rOf=fd=>{const m=/^(\d+)\/(\d+)s?$/.exec(fd||'');return m?{num:+m[2],den:+m[1]}:{num:RT_.num,den:RT_.den}};
+  const rateEl=r=>`<rate><timebase>${Math.round(r.num/r.den)}</timebase><ntsc>${r.den===1001?'TRUE':'FALSE'}</ntsc></rate>`;
+  const SR={num:RT_.num,den:RT_.den},rate=rateEl(SR);
+  const secOf=r=>Number(r[0])/Number(r[1]);const fAt=(t,r)=>Math.round(t*r.num/r.den);
   const purl=u=>u.replace(/^file:\/\/(localhost)?/,'file://localhost');
+  const NCHp=a=>a&&(a.na||1)>1&&String(a.ch||'2')==='1'?a.na:1;
   const fileDone=new Set();let cid=0;
-  const fileEl=a=>{if(fileDone.has(a.id))return `<file id="file-${a.id}"/>`;fileDone.add(a.id);const v=a.hasVideo==='1';
-    return `<file id="file-${a.id}"><name>${xq(a.name)}</name><pathurl>${xq(purl(a.src))}</pathurl>${rate}<duration>${fOf(secOf(rp(a.dur.replace(/s$/,''))))}</duration><media>${v?`<video><samplecharacteristics>${rate}<width>${a.w||1920}</width><height>${a.h||1080}</height></samplecharacteristics></video>`:''}<audio><samplecharacteristics><depth>16</depth><samplerate>48000</samplerate></samplecharacteristics><channelcount>${a.ch||2}</channelcount></audio></media></file>`};
-  // 트랙: 영상은 lane 0,1,2…(위로), 오디오는 영상 있는 lane마다 + 오디오 전용 lane(<0)
-  const vl=LANES.filter(l=>l>=0),al=LANES.slice();const VT={},AT={};vl.forEach(l=>VT[l]=[]);al.forEach(l=>AT[l]=[]);const marks=[];
+  const fileEl=a=>{if(fileDone.has(a.id))return `<file id="file-${a.id}"/>`;fileDone.add(a.id);const v=a.hasVideo==='1',r=rOf(a.fd),n=NCHp(a);
+    const au=n>1?Array.from({length:n},()=>`<audio><samplecharacteristics><depth>24</depth><samplerate>48000</samplerate></samplecharacteristics><channelcount>1</channelcount></audio>`).join(''):`<audio><samplecharacteristics><depth>16</depth><samplerate>48000</samplerate></samplecharacteristics><channelcount>${a.ch||2}</channelcount></audio>`;
+    return `<file id="file-${a.id}"><name>${xq(a.name)}</name><pathurl>${xq(purl(a.src))}</pathurl>${rateEl(r)}<duration>${fAt(secOf(rp(a.dur.replace(/s$/,''))),r)}</duration><media>${v?`<video><samplecharacteristics>${rateEl(r)}<width>${a.w||1920}</width><height>${a.h||1080}</height></samplecharacteristics></video>`:''}${au}</media></file>`};
+  // 트랙: 영상은 lane 0,1,2…(위로). 오디오는 lane마다 그 lane 원본의 최대 채널 수만큼(멀티 모노) + 오디오 전용 lane(<0)
+  const vl=LANES.filter(l=>l>=0);const VT={};vl.forEach(l=>VT[l]=[]);const amax={};const marks=[];const groups=[];
   for(const p of out){
     for(const t of (p.pend||[]))marks.push([p.off,t]);if(p.card)marks.push([p.off,p.card]);
     if(p.first&&p.shot)marks.push([p.off,`${p.si}. [샷 #${p.shot.n||''}] ${p.shot.text||''}`]);else if(p.first&&p.s)marks.push([p.off,`${p.si}. ${spkName(p.s.spk)}: ${p.ftext||keptText(p.s)}`]);
     for(const l of LANES){const c=p.lanes[l];if(!c)continue;const A=AM[c.ref];if(!A)continue;
-      const inF=fOf(secOf(src(c,p.a))-secOf(rp(A.start.replace(/s$/,''))));const it={A,c,start:p.off,end:p.off+p.n,in:inF,out:inF+p.n,en:c.en!==false};
-      if(l>=0&&A.hasVideo==='1')VT[l].push(it);AT[l].push(it)}}
-  const clip=(it,kind,ti)=>{cid++;return `<clipitem id="clipitem-${cid}"><name>${xq(it.A.name)}</name><enabled>${it.en?'TRUE':'FALSE'}</enabled><duration>${fOf(secOf(rp(it.A.dur.replace(/s$/,''))))}</duration>${rate}<start>${it.start}</start><end>${it.end}</end><in>${it.in}</in><out>${it.out}</out>${fileEl(it.A)}${kind==='audio'?`<sourcetrack><mediatype>audio</mediatype><trackindex>${ti}</trackindex></sourcetrack>`:''}</clipitem>`};
-  const vtracks=vl.map(l=>`<track>${VT[l].map(it=>clip(it,'video')).join('')}</track>`).join('');
-  const NCHp=a=>a&&(a.na||1)>1&&String(a.ch||'2')==='1'?a.na:1;
-  const atracks=al.map(l=>{const mx=Math.max(1,...AT[l].map(it=>NCHp(it.A)));let o='';for(let k=1;k<=mx;k++)o+=`<track>${AT[l].filter(it=>k<=NCHp(it.A)).map(it=>clip(it,'audio',k)).join('')}</track>`;return o}).join('');
+      const insec=secOf(src(c,p.a))-secOf(rp(A.start.replace(/s$/,'')));groups.push({l,A,start:p.off,end:p.off+p.n,insec,dsec:p.n/FPS,en:c.en!==false});amax[l]=Math.max(amax[l]||1,NCHp(A))}}
+  const al=Object.keys(amax).map(Number).sort((a,b)=>(a<0)-(b<0)||Math.abs(a)-Math.abs(b));const AT={};al.forEach(l=>{AT[l]=[];for(let k=0;k<amax[l];k++)AT[l].push([])});
+  for(const g of groups){const A=g.A,r=rOf(A.fd),inF=fAt(g.insec,r),outF=inF+Math.max(1,fAt(g.dsec,r)),dur=fAt(secOf(rp(A.dur.replace(/s$/,''))),r);const parts=[];
+    if(g.l>=0&&A.hasVideo==='1')parts.push(['video',VT[g.l],0]);const n=NCHp(A);for(let k=1;k<=n;k++)parts.push(['audio',AT[g.l][k-1],n>1?k:1]);
+    const ids=parts.map(()=>++cid);
+    parts.forEach(([kind,tr,k],q)=>{const links=ids.length>1?ids.map((id,z)=>`<link><linkclipref>clipitem-${id}</linkclipref><mediatype>${parts[z][0]}</mediatype></link>`).join(''):'';
+      tr.push(`<clipitem id="clipitem-${ids[q]}"><name>${xq(A.name)}</name><enabled>${g.en?'TRUE':'FALSE'}</enabled><duration>${dur}</duration>${rateEl(r)}<start>${g.start}</start><end>${g.end}</end><in>${inF}</in><out>${outF}</out>${fileEl(A)}${kind==='audio'?`<sourcetrack><mediatype>audio</mediatype><trackindex>${k}</trackindex></sourcetrack>`:''}${links}</clipitem>`)})}
+  const vtracks=vl.map(l=>`<track>${VT[l].join('')}</track>`).join('');
+  const atracks=al.map(l=>AT[l].map(t=>`<track>${t.join('')}</track>`).join('')).join('');
   const mk=marks.map(([f,t])=>`<marker><name>${xq(t.slice(0,240))}</name><comment></comment><in>${f}</in><out>-1</out></marker>`).join('');
   const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE xmeml>\n<xmeml version="5"><sequence id="sequence-1"><name>${xq(name)}</name><duration>${off}</duration>${rate}<timecode>${rate}<string>00:00:00${DFR?';':':'}00</string><frame>0</frame><displayformat>${DFR?'DF':'NDF'}</displayformat></timecode><media><video><format><samplecharacteristics>${rate}<width>${RW()}</width><height>${RH()}</height><pixelaspectratio>square</pixelaspectratio></samplecharacteristics></format>${vtracks}</video><audio>${atracks}</audio></media>${mk}</sequence></xmeml>\n`;
   return {name,xml,n:nS,dur:off/FPS,ext:'xml'}}
@@ -978,7 +991,7 @@ function xmlMenu(){const p=openPop(`<h4>XML로 내보내기</h4><div style="font
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${Object.keys(RESL).map(k=>`<button class="${k===RES?'pri':''}" data-res="${k}">${RESL[k]}</button>`).join('')}</div>
   <div style="font-size:12px;margin-bottom:4px">편집 프로그램</div>
   <div style="display:flex;gap:6px;flex-wrap:wrap">${['resolve','fcp','premiere'].map(k=>`<button class="${k===NLE?'pri':''}" data-nle="${k}">${NLEN[k]}</button>`).join('')}<button id="xmX">닫기</button></div>
-  <div style="font-size:11px;color:#888;margin-top:8px">다빈치·파이널컷: .fcpxml · 프리미어: .xml (파일 → 가져오기)</div>`,innerWidth/2-170,90);
+  <div style="font-size:11px;color:#888;margin-top:8px">다빈치·프리미어: .xml (FCP7 XML — 다빈치는 File → Import → Timeline) · 파이널컷: .fcpxml</div>`,innerWidth/2-170,90);
   p.querySelector('#xmX').onclick=closePop;
   p.querySelectorAll('[data-res]').forEach(b=>b.onclick=()=>{RES=b.dataset.res;try{localStorage.setItem('rec-player-res',RES)}catch(e){};p.querySelectorAll('[data-res]').forEach(x=>x.classList.toggle('pri',x===b))});
   p.querySelectorAll('[data-nle]').forEach(b=>b.onclick=()=>{NLE=b.dataset.nle;try{localStorage.setItem('rec-player-nle',NLE)}catch(e){};closePop();
