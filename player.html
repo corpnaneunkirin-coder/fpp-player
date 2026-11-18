@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta name="tpl" content="v11.16">
+<meta name="tpl" content="v11.17">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>정봉채 편 녹취 (촬영본 5개)</title>
@@ -898,20 +898,30 @@ function planXML(){
   const byLane={};X.clips.forEach(c=>{(byLane[c.lane]=byLane[c.lane]||[]).push(c)});const LANES=Object.keys(byLane).map(Number).sort((a,b)=>a-b);
   const cover=(lane,f)=>(byLane[lane]||[]).find(c=>f>=c.tf&&f<c.tf+c.nf);
   const bounds=new Set();X.clips.forEach(c=>{bounds.add(c.tf);bounds.add(c.tf+c.nf)});const B=[...bounds].sort((a,b)=>a-b);
-  const used=new Set();const out=[];let off=0,pend=[],si=0;
+  const used=new Set();const out=[];let off=0,pend=[],si=0,G=0;
   expandList(items).forEach(E=>{const id=E.id;
-    if(isShot(id)){const c=S.cards[id];si++;let first=true;const f0=Math.round(c.t0*FPS),f1=Math.round(c.t1*FPS);const cuts=[f0,...B.filter(b=>b>f0&&b<f1),f1];
+    if(isShot(id)){const c=S.cards[id];si++;G++;let first=true;const f0=Math.round(c.t0*FPS),f1=Math.round(c.t1*FPS);const cuts=[f0,...B.filter(b=>b>f0&&b<f1),f1];
       for(let k=0;k<cuts.length-1;k++){const a=cuts[k],b=cuts[k+1],n=b-a;if(n<=0)continue;const lanes={};for(const L of LANES){const cc=cover(L,a);if(cc)lanes[L]=cc}
-        out.push({off,n,a,lanes,shot:c,first,si,pend:first?pend:[]});if(first)pend=[];first=false;off+=n;for(const L in lanes)used.add(lanes[L].ref)}return}
+        out.push({off,n,a,lanes,shot:c,first,si,g:G,pend:first?pend:[]});if(first)pend=[];first=false;off+=n;for(const L in lanes)used.add(lanes[L].ref)}return}
     if(isCard(id)){const c=S.cards[id];const lab=`[${KINDS[c.kind][0]}] ${c.text}`;const n=Math.round((c.dur||0)*FPS);
       if(n>0){out.push({off,n,a:0,lanes:{},card:lab,pend});pend=[];off+=n}else pend.push(lab);return}
     const s=MAP.get(id);si++;let first=true;
-    for(const [t0,t1] of (E.segs||segsOf(s))){const f0=Math.floor(t0*FPS),f1=Math.ceil(t1*FPS);const cuts=[f0,...B.filter(b=>b>f0&&b<f1),f1];
+    for(const [t0,t1] of (E.segs||segsOf(s))){G++;const f0=Math.floor(t0*FPS),f1=Math.ceil(t1*FPS);const cuts=[f0,...B.filter(b=>b>f0&&b<f1),f1];
       for(let k=0;k<cuts.length-1;k++){const a=cuts[k],b=cuts[k+1],n=b-a;if(n<=0)continue;
         const lanes={};for(const L of LANES){const c=cover(L,a);if(c)lanes[L]=c}
-        out.push({off,n,a,lanes,s,ftext:E.text,first,si,pend:first?pend:[]});if(first)pend=[];first=false;off+=n;for(const L in lanes)used.add(lanes[L].ref)}}});
+        out.push({off,n,a,lanes,s,ftext:E.text,first,si,g:G,pend:first?pend:[]});if(first)pend=[];first=false;off+=n;for(const L in lanes)used.add(lanes[L].ref)}}});
   const src=(c,f)=>ra(rp(c.ss),fr(f-c.tf));
+  // 여유(핸들): 문장·조각·샷마다 앞뒤로 HANDLE초씩 더 길게(같은 조각 안 컷 경계에는 안 붙여요). 원본 파일 처음·끝을 넘지 않게 줄여요
+  if(HANDLE>0){const H=Math.round(HANDLE*FPS),AM={};X.assets.forEach(x=>AM[x.id]=x);const sec=r=>Number(r[0])/Number(r[1]);
+    const room=(p,f,side)=>{let m=H;for(const L in p.lanes){const c=p.lanes[L],A=AM[c.ref];if(!A)continue;const t=sec(src(c,f))-sec(rp(A.start.replace(/s$/,'')));
+        const v=side<0?Math.floor(t*FPS+1e-6):Math.floor((sec(rp(A.dur.replace(/s$/,'')))-t)*FPS+1e-6);m=Math.min(m,Math.max(0,v))}return m};
+    for(let i=0;i<out.length;i++){const p=out[i];if(!p.g||!Object.keys(p.lanes).length)continue;
+      const st=i===0||out[i-1].g!==p.g,en=i===out.length-1||out[i+1].g!==p.g;
+      if(st){const h=room(p,p.a,-1);p.a-=h;p.n+=h}if(en){const h=room(p,p.a+p.n,1);p.n+=h}}
+    let o=0;for(const p of out){p.off=o;o+=p.n}off=o}
   return {X,out,LANES,used,off,nS,src}}
+// 클립 여유: XML로 내보낼 때 앞뒤로 붙일 초(0 = 없음). 마지막 선택을 기억
+let HANDLE=(()=>{try{const v=localStorage.getItem('rec-player-handle');return v==null?0:+v}catch(e){return 0}})();
 // 편집 프로그램: resolve(다빈치) / fcp(파이널컷) / premiere(프리미어). DATA.nle가 기본, 마지막 선택을 기억
 let NLE=(()=>{try{return localStorage.getItem('rec-player-nle')||DATA.nle||'resolve'}catch(e){return DATA.nle||'resolve'}})();
 const NLEN={resolve:'다빈치',fcp:'파이널컷',premiere:'프리미어'};
@@ -990,16 +1000,19 @@ function writeXMEML({X,out,LANES,used,off,nS,src}){const AM={};X.assets.forEach(
   const mk=marks.map(([f,t])=>`<marker><name>${xq(t.slice(0,240))}</name><comment></comment><in>${f}</in><out>-1</out></marker>`).join('');
   const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE xmeml>\n<xmeml version="5"><sequence id="sequence-1"><name>${xq(name)}</name><duration>${off}</duration>${rate}<timecode>${rate}<string>00:00:00${DFR?';':':'}00</string><frame>0</frame><displayformat>${DFR?'DF':'NDF'}</displayformat></timecode><media><video><format><samplecharacteristics>${rate}<width>${RW()}</width><height>${RH()}</height><pixelaspectratio>square</pixelaspectratio></samplecharacteristics></format>${vtracks}</video><audio>${atracks}</audio></media>${mk}</sequence></xmeml>\n`;
   return {name,xml,n:nS,dur:off/FPS,ext:'xml'}}
-function xmlMenu(){const p=openPop(`<h4>XML로 내보내기</h4><div style="font-size:12px;color:#666;margin-bottom:8px">[사용] 순서대로 타임라인을 만들어요. 해상도를 확인하고 편집 프로그램을 누르세요(둘 다 다음에도 기억해요).</div>
+function xmlMenu(){const p=openPop(`<h4>XML로 내보내기</h4><div style="font-size:12px;color:#666;margin-bottom:8px">[사용] 순서대로 타임라인을 만들어요. 해상도·여유를 확인하고 편집 프로그램을 누르세요(모두 다음에도 기억해요).</div>
   <div style="font-size:12px;margin-bottom:4px">타임라인 해상도</div>
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${Object.keys(RESL).map(k=>`<button class="${k===RES?'pri':''}" data-res="${k}">${RESL[k]}</button>`).join('')}</div>
+  <div style="font-size:12px;margin-bottom:4px">클립 여유 (문장·샷마다 앞뒤로 더 길게)</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${[[0,'여유 없음'],[0.5,'앞뒤 0.5초']].map(([v,l])=>`<button class="${v===HANDLE?'pri':''}" data-hd="${v}">${l}</button>`).join('')}</div>
   <div style="font-size:12px;margin-bottom:4px">편집 프로그램</div>
   <div style="display:flex;gap:6px;flex-wrap:wrap">${['resolve','fcp','premiere'].map(k=>`<button class="${k===NLE?'pri':''}" data-nle="${k}">${NLEN[k]}</button>`).join('')}<button id="xmX">닫기</button></div>
   <div style="font-size:11px;color:#888;margin-top:8px">다빈치·프리미어: .xml (FCP7 XML — 다빈치는 File → Import → Timeline) · 파이널컷: .fcpxml</div>`,innerWidth/2-170,90);
   p.querySelector('#xmX').onclick=closePop;
+  p.querySelectorAll('[data-hd]').forEach(b=>b.onclick=()=>{HANDLE=+b.dataset.hd;try{localStorage.setItem('rec-player-handle',HANDLE)}catch(e){};p.querySelectorAll('[data-hd]').forEach(x=>x.classList.toggle('pri',x===b))});
   p.querySelectorAll('[data-res]').forEach(b=>b.onclick=()=>{RES=b.dataset.res;try{localStorage.setItem('rec-player-res',RES)}catch(e){};p.querySelectorAll('[data-res]').forEach(x=>x.classList.toggle('pri',x===b))});
   p.querySelectorAll('[data-nle]').forEach(b=>b.onclick=()=>{NLE=b.dataset.nle;try{localStorage.setItem('rec-player-nle',NLE)}catch(e){};closePop();
-    const r=buildXML(NLE);if(!r){toast('[사용]에 문장이나 카드를 먼저 넣어주세요');return}deliver(`${r.name}_${NLEN[NLE]}.${r.ext}`,r.xml,'application/xml');toast(`${NLEN[NLE]}용 · ${RES.replace('x','×')} · ${r.n}문장 · RT ${mmss(r.dur)} XML`)})}
+    const r=buildXML(NLE);if(!r){toast('[사용]에 문장이나 카드를 먼저 넣어주세요');return}deliver(`${r.name}_${NLEN[NLE]}.${r.ext}`,r.xml,'application/xml');toast(`${NLEN[NLE]}용 · ${RES.replace('x','×')}${HANDLE?` · 여유 ${HANDLE}초`:''} · ${r.n}문장 · RT ${mmss(r.dur)} XML`)})}
 $('#bXml').onclick=xmlMenu;
 // ================= mobile bits =================
 function setVh(){document.documentElement.style.setProperty('--vh',$('#vbox').offsetHeight+'px')}
