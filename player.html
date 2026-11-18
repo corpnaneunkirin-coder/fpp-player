@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta name="tpl" content="v11.12">
+<meta name="tpl" content="v11.13">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>정봉채 편 녹취 (촬영본 5개)</title>
@@ -223,7 +223,7 @@ const MOBILE=true;
 const KEY='rec-player:'+DATA.key;
 // 프레임레이트·DF: DATA.rate={num,den,df} (make_uni.py가 cfg fps/df로 넣어요). 없으면 29.97 DF
 const RT_=DATA.rate||{num:30000,den:1001,df:true};const FPS=RT_.num/RT_.den;const NOMF=Math.round(FPS);const DFR=!!RT_.df&&RT_.den===1001&&(NOMF===30||NOMF===60);
-const TCF=DFR?'DF':'NDF';const FDUR=`${RT_.den}/${RT_.num}s`;const FMTN='FFVideoFormat1080p'+({'24000/1001':'2398','30000/1001':'2997','60000/1001':'5994'}[RT_.num+'/'+RT_.den]||String(NOMF));
+const TCF=DFR?'DF':'NDF';const FDUR=`${RT_.den}/${RT_.num}s`;const FMTS=({'24000/1001':'2398','30000/1001':'2997','60000/1001':'5994'}[RT_.num+'/'+RT_.den]||String(NOMF));
 const $=s=>document.querySelector(s);
 const PAL=['#c0392b','#2b59c3','#1f7a4d','#b26a00','#8e44ad','#16a085','#d35400','#7f8c8d','#c2185b','#5d4037'];
 const TRK=DATA.tracks;function trOf(t){let k=0;for(let i=0;i<TRK.length;i++)if(t>=TRK[i].off-0.001)k=i;return k}
@@ -910,6 +910,10 @@ function planXML(){
 // 편집 프로그램: resolve(다빈치) / fcp(파이널컷) / premiere(프리미어). DATA.nle가 기본, 마지막 선택을 기억
 let NLE=(()=>{try{return localStorage.getItem('rec-player-nle')||DATA.nle||'resolve'}catch(e){return DATA.nle||'resolve'}})();
 const NLEN={resolve:'다빈치',fcp:'파이널컷',premiere:'프리미어'};
+// 타임라인 해상도: 1920x1080 / 3840x2160. DATA.res가 기본, 마지막 선택을 기억(원본 클립 포맷은 그대로)
+const RESL={'1920x1080':'1920×1080 (FHD)','3840x2160':'3840×2160 (UHD)'};
+let RES=(()=>{const d=DATA.res?`${DATA.res.w}x${DATA.res.h}`:'1920x1080';try{return localStorage.getItem('rec-player-res')||d}catch(e){return d}})();
+const RW=()=>RES.split('x')[0],RH=()=>RES.split('x')[1],FMTN=()=>`FFVideoFormat${RH()}p${FMTS}`;
 function buildXML(nle){nle=nle||NLE;const P_=planXML();if(!P_)return null;return nle==='premiere'?writeXMEML(P_):writeFCPXML(P_,nle)}
 // 드롭프레임 프레임 수 ↔ 타임코드 숫자(h,m,s,f)
 function dfSplit(f){const N=NOMF,dp=N===30?2:4,f10=N*600-dp*9,f1=N*60-dp;const D=Math.floor(f/f10),M=f%f10;f=f+dp*9*D+dp*Math.max(0,Math.floor((M-dp)/f1));return [Math.floor(f/(N*3600)),Math.floor(f/(N*60))%60,Math.floor(f/N)%60,f%N]}
@@ -924,8 +928,8 @@ function writeFCPXML(P_,nle){const {X,out,LANES,used,off,nS,src}=P_;const fcp=nl
   const NCH=a=>a&&(a.na||1)>1&&String(a.ch||'2')==='1'?a.na:1;const chs=a=>{const n=NCH(a);return n>1?Array.from({length:n},(_,k)=>`<audio-channel-source srcCh="${k+1}" role="dialogue.dialogue-${k+1}"/>`).join(''):''};
   const aFmt=a=>fcp?(a._f||'r1'):'r1';const aTcf=a=>fcp&&a.mdf===false?'NDF':TCF;const AM={};X.assets.forEach(a=>AM[a.id]=a);
   const L=['<?xml version="1.0" encoding="UTF-8"?>','<!DOCTYPE fcpxml>','<fcpxml version="1.10">','    <resources>',
-    `        <format id="r0" name="${FMTN}" frameDuration="${FDUR}" width="1920" height="1080"/>`,
-    `        <format id="r1" name="${FMTN}" frameDuration="${FDUR}" width="1920" height="1080"/>`,...fmtL];
+    `        <format id="r0" name="${FMTN()}" frameDuration="${FDUR}" width="${RW()}" height="${RH()}"/>`,
+    `        <format id="r1" name="FFVideoFormat1080p${FMTS}" frameDuration="${FDUR}" width="1920" height="1080"/>`,...fmtL];
   X.assets.filter(a=>used.has(a.id)).forEach(a=>{const v=a.hasVideo==='1';const st=shift[a.id]?rs(ra(rp(a.start.replace(/s$/,'')),shift[a.id])):a.start;
     L.push(`        <asset id="${a.id}" name="${xq(a.name)}" start="${st}" duration="${a.dur}" hasVideo="${v?1:0}" hasAudio="1"${v?` format="${aFmt(a)}"`:''} audioSources="${NCH(a)}" audioChannels="${NCH(a)>1?1:(a.ch||2)}" audioRate="48000">`,
       `            <media-rep kind="original-media" src="${xq(a.src)}"/>`,'        </asset>')});
@@ -967,14 +971,18 @@ function writeXMEML({X,out,LANES,used,off,nS,src}){const AM={};X.assets.forEach(
   const NCHp=a=>a&&(a.na||1)>1&&String(a.ch||'2')==='1'?a.na:1;
   const atracks=al.map(l=>{const mx=Math.max(1,...AT[l].map(it=>NCHp(it.A)));let o='';for(let k=1;k<=mx;k++)o+=`<track>${AT[l].filter(it=>k<=NCHp(it.A)).map(it=>clip(it,'audio',k)).join('')}</track>`;return o}).join('');
   const mk=marks.map(([f,t])=>`<marker><name>${xq(t.slice(0,240))}</name><comment></comment><in>${f}</in><out>-1</out></marker>`).join('');
-  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE xmeml>\n<xmeml version="5"><sequence id="sequence-1"><name>${xq(name)}</name><duration>${off}</duration>${rate}<timecode>${rate}<string>00:00:00${DFR?';':':'}00</string><frame>0</frame><displayformat>${DFR?'DF':'NDF'}</displayformat></timecode><media><video><format><samplecharacteristics>${rate}<width>1920</width><height>1080</height><pixelaspectratio>square</pixelaspectratio></samplecharacteristics></format>${vtracks}</video><audio>${atracks}</audio></media>${mk}</sequence></xmeml>\n`;
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE xmeml>\n<xmeml version="5"><sequence id="sequence-1"><name>${xq(name)}</name><duration>${off}</duration>${rate}<timecode>${rate}<string>00:00:00${DFR?';':':'}00</string><frame>0</frame><displayformat>${DFR?'DF':'NDF'}</displayformat></timecode><media><video><format><samplecharacteristics>${rate}<width>${RW()}</width><height>${RH()}</height><pixelaspectratio>square</pixelaspectratio></samplecharacteristics></format>${vtracks}</video><audio>${atracks}</audio></media>${mk}</sequence></xmeml>\n`;
   return {name,xml,n:nS,dur:off/FPS,ext:'xml'}}
-function xmlMenu(){const p=openPop(`<h4>XML로 내보내기</h4><div style="font-size:12px;color:#666;margin-bottom:8px">[사용] 순서대로 타임라인을 만들어요. 편집 프로그램을 고르세요(다음에도 기억해요).</div>
+function xmlMenu(){const p=openPop(`<h4>XML로 내보내기</h4><div style="font-size:12px;color:#666;margin-bottom:8px">[사용] 순서대로 타임라인을 만들어요. 해상도를 확인하고 편집 프로그램을 누르세요(둘 다 다음에도 기억해요).</div>
+  <div style="font-size:12px;margin-bottom:4px">타임라인 해상도</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${Object.keys(RESL).map(k=>`<button class="${k===RES?'pri':''}" data-res="${k}">${RESL[k]}</button>`).join('')}</div>
+  <div style="font-size:12px;margin-bottom:4px">편집 프로그램</div>
   <div style="display:flex;gap:6px;flex-wrap:wrap">${['resolve','fcp','premiere'].map(k=>`<button class="${k===NLE?'pri':''}" data-nle="${k}">${NLEN[k]}</button>`).join('')}<button id="xmX">닫기</button></div>
   <div style="font-size:11px;color:#888;margin-top:8px">다빈치·파이널컷: .fcpxml · 프리미어: .xml (파일 → 가져오기)</div>`,innerWidth/2-170,90);
   p.querySelector('#xmX').onclick=closePop;
+  p.querySelectorAll('[data-res]').forEach(b=>b.onclick=()=>{RES=b.dataset.res;try{localStorage.setItem('rec-player-res',RES)}catch(e){};p.querySelectorAll('[data-res]').forEach(x=>x.classList.toggle('pri',x===b))});
   p.querySelectorAll('[data-nle]').forEach(b=>b.onclick=()=>{NLE=b.dataset.nle;try{localStorage.setItem('rec-player-nle',NLE)}catch(e){};closePop();
-    const r=buildXML(NLE);if(!r){toast('[사용]에 문장이나 카드를 먼저 넣어주세요');return}deliver(`${r.name}_${NLEN[NLE]}.${r.ext}`,r.xml,'application/xml');toast(`${NLEN[NLE]}용 · ${r.n}문장 · RT ${mmss(r.dur)} XML`)})}
+    const r=buildXML(NLE);if(!r){toast('[사용]에 문장이나 카드를 먼저 넣어주세요');return}deliver(`${r.name}_${NLEN[NLE]}.${r.ext}`,r.xml,'application/xml');toast(`${NLEN[NLE]}용 · ${RES.replace('x','×')} · ${r.n}문장 · RT ${mmss(r.dur)} XML`)})}
 $('#bXml').onclick=xmlMenu;
 // ================= mobile bits =================
 function setVh(){document.documentElement.style.setProperty('--vh',$('#vbox').offsetHeight+'px')}
