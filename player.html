@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta name="tpl" content="v11.14">
+<meta name="tpl" content="v11.15">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>정봉채 편 녹취 (촬영본 5개)</title>
@@ -954,7 +954,9 @@ function writeFCPXML(P_,nle){const {X,out,LANES,used,off,nS,src}=P_;const fcp=nl
     L.push(prim?'                        </asset-clip>':'                        </gap>')}
   L.push('                    </spine>','                </sequence>','            </project>','        </event>','    </library>','</fcpxml>');
   return {name,xml:L.join('\n'),n:nS,dur:off/FPS,ext:'fcpxml'}}
-// 프리미어·다빈치: FCP7 XML(xmeml v5). 클립 in/out은 '원본 파일 안의 초'를 원본 fps 프레임으로 → 원본 TC 방식(DF/NDF)·fps(23.976 캐논 등)가 타임라인과 달라도 안 밀려요.
+// 프리미어·다빈치: FCP7 XML(xmeml v5). 클립 in/out = '원본 파일 안의 초' × 타임라인 fps(다빈치는 원본 fps를 적어도 타임라인 fps로 읽어요).
+// file에는 원본 fps와 원본 시작 TC를 적어요 — 다빈치는 TC가 원본과 다르면 파일을 못 찾거나(불러오기 실패) DF/NDF가 다르면 위치가 밀려요(2026-11-18 확인).
+//   TC 숫자는 asset start(DF 프로젝트에서는 드롭으로 셈)를 되돌려 얻고, 29.97·59.94 원본은 다빈치처럼 ';', 그 밖(23.976 캐논·24·25)은 ':'
 // 멀티 모노 원본(소니 FX6 MXF 등)은 채널마다 clipitem(sourcetrack k) → 다빈치에서 컴파운드 없이 모노 트랙 n개(채널 1..n, 2026-11-18 확인). 같은 클립의 영상·오디오는 link로 묶어요
 function writeXMEML({X,out,LANES,used,off,nS,src}){const AM={};X.assets.forEach(a=>AM[a.id]=a);
   const name=`${DATA.xmlName}_사용_${stamp()}`;
@@ -967,7 +969,9 @@ function writeXMEML({X,out,LANES,used,off,nS,src}){const AM={};X.assets.forEach(
   const fileDone=new Set();let cid=0;
   const fileEl=a=>{if(fileDone.has(a.id))return `<file id="file-${a.id}"/>`;fileDone.add(a.id);const v=a.hasVideo==='1',r=rOf(a.fd),n=NCHp(a);
     const au=n>1?Array.from({length:n},()=>`<audio><samplecharacteristics><depth>24</depth><samplerate>48000</samplerate></samplecharacteristics><channelcount>1</channelcount></audio>`).join(''):`<audio><samplecharacteristics><depth>16</depth><samplerate>48000</samplerate></samplecharacteristics><channelcount>${a.ch||2}</channelcount></audio>`;
-    return `<file id="file-${a.id}"><name>${xq(a.name)}</name><pathurl>${xq(purl(a.src))}</pathurl>${rateEl(r)}<duration>${fAt(secOf(rp(a.dur.replace(/s$/,''))),r)}</duration><media>${v?`<video><samplecharacteristics>${rateEl(r)}<width>${a.w||1920}</width><height>${a.h||1080}</height></samplecharacteristics></video>`:''}${au}</media></file>`};
+    const tcF=Math.round(secOf(rp(a.start.replace(/s$/,'')))*RT_.num/RT_.den);const [th,tm,ts,tf]=DFR?dfSplit(tcF):[Math.floor(tcF/(NOMF*3600)),Math.floor(tcF/(NOMF*60))%60,Math.floor(tcF/NOMF)%60,tcF%NOMF];
+    const mdfR=DFR&&r.den===1001&&[30,60].includes(Math.round(r.num/r.den));const p2=x=>String(x).padStart(2,'0');const tcs=`${p2(th)}:${p2(tm)}:${p2(ts)}${mdfR?';':':'}${p2(tf)}`;
+    return `<file id="file-${a.id}"><name>${xq(a.name)}</name><pathurl>${xq(purl(a.src))}</pathurl>${rateEl(r)}<duration>${fAt(secOf(rp(a.dur.replace(/s$/,''))),r)}</duration><timecode>${rateEl(r)}<string>${tcs}</string><displayformat>${mdfR?'DF':'NDF'}</displayformat></timecode><media>${v?`<video><samplecharacteristics>${rateEl(r)}<width>${a.w||1920}</width><height>${a.h||1080}</height></samplecharacteristics></video>`:''}${au}</media></file>`};
   // 트랙: 영상은 lane 0,1,2…(위로). 오디오는 lane마다 그 lane 원본의 최대 채널 수만큼(멀티 모노) + 오디오 전용 lane(<0)
   const vl=LANES.filter(l=>l>=0);const VT={};vl.forEach(l=>VT[l]=[]);const amax={};const marks=[];const groups=[];
   for(const p of out){
@@ -976,11 +980,11 @@ function writeXMEML({X,out,LANES,used,off,nS,src}){const AM={};X.assets.forEach(
     for(const l of LANES){const c=p.lanes[l];if(!c)continue;const A=AM[c.ref];if(!A)continue;
       const insec=secOf(src(c,p.a))-secOf(rp(A.start.replace(/s$/,'')));groups.push({l,A,start:p.off,end:p.off+p.n,insec,dsec:p.n/FPS,en:c.en!==false});amax[l]=Math.max(amax[l]||1,NCHp(A))}}
   const al=Object.keys(amax).map(Number).sort((a,b)=>(a<0)-(b<0)||Math.abs(a)-Math.abs(b));const AT={};al.forEach(l=>{AT[l]=[];for(let k=0;k<amax[l];k++)AT[l].push([])});
-  for(const g of groups){const A=g.A,r=rOf(A.fd),inF=fAt(g.insec,r),outF=inF+Math.max(1,fAt(g.dsec,r)),dur=fAt(secOf(rp(A.dur.replace(/s$/,''))),r);const parts=[];
+  for(const g of groups){const A=g.A,inF=fAt(g.insec,SR),outF=inF+(g.end-g.start),dur=fAt(secOf(rp(A.dur.replace(/s$/,''))),SR);const parts=[];
     if(g.l>=0&&A.hasVideo==='1')parts.push(['video',VT[g.l],0]);const n=NCHp(A);for(let k=1;k<=n;k++)parts.push(['audio',AT[g.l][k-1],n>1?k:1]);
     const ids=parts.map(()=>++cid);
     parts.forEach(([kind,tr,k],q)=>{const links=ids.length>1?ids.map((id,z)=>`<link><linkclipref>clipitem-${id}</linkclipref><mediatype>${parts[z][0]}</mediatype></link>`).join(''):'';
-      tr.push(`<clipitem id="clipitem-${ids[q]}"><name>${xq(A.name)}</name><enabled>${g.en?'TRUE':'FALSE'}</enabled><duration>${dur}</duration>${rateEl(r)}<start>${g.start}</start><end>${g.end}</end><in>${inF}</in><out>${outF}</out>${fileEl(A)}${kind==='audio'?`<sourcetrack><mediatype>audio</mediatype><trackindex>${k}</trackindex></sourcetrack>`:''}${links}</clipitem>`)})}
+      tr.push(`<clipitem id="clipitem-${ids[q]}"><name>${xq(A.name)}</name><enabled>${g.en?'TRUE':'FALSE'}</enabled><duration>${dur}</duration>${rate}<start>${g.start}</start><end>${g.end}</end><in>${inF}</in><out>${outF}</out>${fileEl(A)}${kind==='audio'?`<sourcetrack><mediatype>audio</mediatype><trackindex>${k}</trackindex></sourcetrack>`:''}${links}</clipitem>`)})}
   const vtracks=vl.map(l=>`<track>${VT[l].join('')}</track>`).join('');
   const atracks=al.map(l=>AT[l].map(t=>`<track>${t.join('')}</track>`).join('')).join('');
   const mk=marks.map(([f,t])=>`<marker><name>${xq(t.slice(0,240))}</name><comment></comment><in>${f}</in><out>-1</out></marker>`).join('');
