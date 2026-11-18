@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta name="tpl" content="v11.15">
+<meta name="tpl" content="v11.16">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>정봉채 편 녹취 (촬영본 5개)</title>
@@ -780,7 +780,7 @@ $('#bExport').onclick=()=>{const lines=[`${DATA.title} — 사용 목록`,''];le
   deliver(`${DATA.title}_사용목록_${stamp()}.txt`,lines.join('\n'),'text/plain;charset=utf-8')};
 // ================= 한글(hwpx) 저장 =================
 const HWPX=/*<H*//*__HWPX__*/{}/*H>*/;
-function hx(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'')}
+function hx(t){return String(t==null?'':t).replace(/\t/g,'    ').replace(/\r?\n/g,' ').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'')}
 let HPID=1000;
 // 본문 글자 0번을 복사해 음영·밑줄·글자색만 바꾼 글자 모양을 header에 한 번만 추가
 function mkChar(key,shade,ul,color){const I=HWPX.ids;if(I[key]!=null)return I[key];let h=HWPX.header;const m=/<hh:charProperties itemCnt="(\d+)">/.exec(h);const base=/<hh:charPr id="0"[\s\S]*?<\/hh:charPr>/.exec(h);
